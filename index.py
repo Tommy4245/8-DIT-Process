@@ -16,6 +16,8 @@ def number_input_validation(msg, minimum, maximum):
             user_response = int(input(":"))
             if user_response == 0:  
                 menu(conn)
+            elif user_response == 100:
+                user_add(conn)
             elif minimum <= user_response <= maximum:
                 return user_response
             else:
@@ -23,8 +25,9 @@ def number_input_validation(msg, minimum, maximum):
         except ValueError:
             print("Invalid answer, please make sure to choose a number between", minimum, "-", maximum)
 
+    
+
 def menu(conn):
-    print("\nWelcome To This Japanese Language Learning App")
     print("Below are some options that you can return to:")
     print("Option 1: View a Random Japanese Word and Its Translation")
     print("Option 2: View your Wordlist")
@@ -43,6 +46,9 @@ def menu(conn):
         conn.close()
         exit()
 
+def user_add(word):
+    
+    
 def new_word(conn):
     print("Choose a difficulty:")
     for i, diff in enumerate(difficulty_list, start =1):
@@ -99,7 +105,6 @@ def learn_sets(conn):
     print("Set Complete, returning to menu")
     menu(conn)
 
-
 def learn(conn):
     print("Welcome to the Learning Area")
     print("Would you like to test your skills on sets or find new words to view?")
@@ -129,4 +134,16 @@ def view_random_word(conn):
     menu(conn)
 
 if __name__ == "__main__":
+    print("\nWelcome To This Japanese Language Learning App")
+    print("Remeber please type 0 to return to the menu at any time and 100 to append words to your wordlist")
+    sign_create = number_input_validation("Please sign in or create a account, type 1 to sign in or 2 to create a account")
+    if sign_create == 1:    
+    elif sign_create == 2:
+        User_name = print("What is your name you so I can track your words:")
+        User_password = print("What would you like your password to be:")
+        cursor = conn.cursor
+        cursor.execute('Select Username from User_info')
+        usernames = cursor.fetchall 
+        User_username = print("Please choose a username:")
+"""Need to wprk on code above"""
     menu(conn)

@@ -25,9 +25,21 @@ def number_input_validation(msg, minimum, maximum):
         except ValueError:
             print("Invalid answer, please make sure to choose a number between", minimum, "-", maximum)
 
-    
+def string_input_validation(msg, option1, option2, invalid_select_option1_or_2):
+    print(msg)
+    while True:
+        try:
+            users_choice = input(":")
+            users_choice = users_choice.upper()  # Formats so all the results have the same case to avoid confusion and errors makeing my program Robust
+            if users_choice == option1 or users_choice == option2:  # Checks to see if the User has inputed a Valid choice
+                return users_choice
+            else:
+                print(invalid_select_option1_or_2)
+        except:
+            print(invalid_select_option1_or_2)
 
 def menu(conn):
+    print("Remember, please type 0 to return to the menu at any time and 100 to append words to your wordlist")
     print("Below are some options that you can return to:")
     print("Option 1: View a Random Japanese Word and Its Translation")
     print("Option 2: View your Wordlist")
@@ -47,6 +59,7 @@ def menu(conn):
         exit()
 
 def user_add(word):
+    print("")
     
     
 def new_word(conn):
@@ -135,15 +148,31 @@ def view_random_word(conn):
 
 if __name__ == "__main__":
     print("\nWelcome To This Japanese Language Learning App")
-    print("Remeber please type 0 to return to the menu at any time and 100 to append words to your wordlist")
-    sign_create = number_input_validation("Please sign in or create a account, type 1 to sign in or 2 to create a account")
-    if sign_create == 1:    
-    elif sign_create == 2:
-        User_name = print("What is your name you so I can track your words:")
-        User_password = print("What would you like your password to be:")
-        cursor = conn.cursor
-        cursor.execute('Select Username from User_info')
-        usernames = cursor.fetchall 
-        User_username = print("Please choose a username:")
-"""Need to wprk on code above"""
-    menu(conn)
+    sign_create = string_input_validation("Please sign in or create an account, type sign to sign in or create to create an account: ","CREATE","SIGN","Invalid response please choose either create or sign")
+    if sign_create == "SIGN":
+        cursor.execute('SELECT Username, Password FROM User_info')
+        credentials = cursor.fetchall
+        user_username = ""
+        while True:
+            user_username = input("Please enter username: ")
+            user_password = input("Please enter password: ")
+            if (user_username, user_password) in credentials:
+                print("Sign in successful!")
+                menu(cursor)
+                break
+            else:
+                print("Invalid username or password. Please try again.")
+    elif sign_create == "CREATE":
+        user_name = input("What is your name so I can track your words: ")
+        user_password = input("What would you like your password to be: ")
+        cursor.execute('SELECT Username FROM User_info')
+        usernames = [row[0] for row in cursor.fetchall()]
+        user_username = ""
+        while user_username == "" or user_username in usernames:
+            user_username = input("Please choose a username: ")
+            if user_username in usernames:
+                print("Username already taken, please choose another one.")
+        cursor.execute('INSERT INTO User_info (Username, Users_Password, User_Name) VALUES (?, ?, ?)', (user_username, user_password, user_name))
+        conn.commit()
+        print("Account created successfully!")
+        menu(conn)

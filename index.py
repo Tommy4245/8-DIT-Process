@@ -9,14 +9,12 @@ conn = sqlite3.connect('Database.db')
 cursor = conn.cursor()
 
 def number_input_validation(msg, minimum, maximum):
-    """Validate int values that the user has selected and has boundaries to validate the user response is in range."""
     print(msg)
     while True:
         try:
             user_response = int(input(":"))
             if user_response == 0:  
                 menu(conn)
-            elif user_response == 100:
                 user_add(conn)
             elif minimum <= user_response <= maximum:
                 return user_response
@@ -39,14 +37,14 @@ def string_input_validation(msg, option1, option2, invalid_select_option1_or_2):
             print(invalid_select_option1_or_2)
 
 def menu(conn):
-    print("Remember, please type 0 to return to the menu at any time and 100 to append words to your wordlist")
+    print("Remember, please type 0 to return to the menu at any time and remeber to remeber WordID's for your Wordlist!")
     print("Below are some options that you can return to:")
     print("Option 1: View a Random Japanese Word and Its Translation")
     print("Option 2: View your Wordlist")
     print("Option 3: Find New words to learn and Practice with sets")
     print("Option 4: Exit")
     
-    user_choice = number_input_validation("Please choose an option (1-4):", 1, 4)
+    user_choice = number_input_validation("Please choose an option (1-5):", 1, 5)
     if user_choice == 1:
         view_random_word(conn)
     elif user_choice == 2:
@@ -54,12 +52,24 @@ def menu(conn):
     elif user_choice == 3:
         learn(conn)
     elif user_choice == 4:
+        user_add(conn)
+    elif user_choice == 5:
         print("Please visit us again")
         conn.close()
         exit()
 
 def user_add(word):
-    print("")
+    global current_user_id
+    word_id = int(input("Please enter the Word ID you want to add to your wordlist: "))
+    
+    try:
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO Users_Wordlist (user_id, word_id) VALUES (?, ?)', (current_user_id, word_id))
+        conn.commit()
+        print("Word successfully added to your wordlist!")
+    except sqlite3.IntegrityError as e:
+        print(f"An error occurred: {e}")
+
     
     
 def new_word(conn):
@@ -126,6 +136,7 @@ def learn(conn):
         learn_sets(conn)
     elif user_choice == 2:
         new_word(conn)
+
 def view_random_word(conn):
     cursor = conn.cursor()
     try:
@@ -150,15 +161,17 @@ if __name__ == "__main__":
     print("\nWelcome To This Japanese Language Learning App")
     sign_create = string_input_validation("Please sign in or create an account, type sign to sign in or create to create an account: ","CREATE","SIGN","Invalid response please choose either create or sign")
     if sign_create == "SIGN":
-        cursor.execute('SELECT Username, Password FROM User_info')
-        credentials = cursor.fetchall
+        cursor.execute('SELECT Username, Users_Password FROM User_info')
+        credentials = cursor.fetchall()
         user_username = ""
         while True:
             user_username = input("Please enter username: ")
             user_password = input("Please enter password: ")
             if (user_username, user_password) in credentials:
                 print("Sign in successful!")
-                menu(cursor)
+                cursor.execute('SELECT UserID FROM User_info WHERE Username = ?', (user_username,))
+                current_user_id = cursor.fetchone()[0]
+                menu(conn)
                 break
             else:
                 print("Invalid username or password. Please try again.")

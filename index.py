@@ -28,9 +28,11 @@ def string_input_validation(msg, option1, option2, invalid_select_option1_or_2):
     while True:
         try:
             users_choice = input(":")
-            users_choice = users_choice.upper()  # Formats so all the results have the same case to avoid confusion and errors makeing my program Robust
-            if users_choice == option1 or users_choice == option2:  # Checks to see if the User has inputed a Valid choice
+            users_choice = users_choice.upper() 
+            if users_choice == option1 or users_choice == option2:  
                 return users_choice
+            elif users_choice == "0":
+                menu(conn)
             else:
                 print(invalid_select_option1_or_2)
         except:
@@ -40,38 +42,105 @@ def menu(conn):
     print("Remember, please type 0 to return to the menu at any time and remeber to remeber WordID's for your Wordlist!")
     print("Below are some options that you can return to:")
     print("Option 1: View a Random Japanese Word and Its Translation")
-    print("Option 2: View your Wordlist")
+    print("Option 2: Practice your Wordlist")
     print("Option 3: Find New words to learn and Practice with sets")
-    print("Option 4: Exit")
+    print("Option 4: Add words to your wordlist")
+    print("Option 5: Modify your Wordlist")
+    print("Option 6: Exit")
     
     user_choice = number_input_validation("Please choose an option (1-5):", 1, 5)
     if user_choice == 1:
         view_random_word(conn)
     elif user_choice == 2:
-        ...
+        practice_wordlist(conn)
     elif user_choice == 3:
         learn(conn)
     elif user_choice == 4:
         user_add(conn)
     elif user_choice == 5:
+        user_add(conn)
+    elif user_choice == 6:
         print("Please visit us again")
         conn.close()
         exit()
 
-def user_add(word):
+def user_add(conn):
     global current_user_id
-    word_id = int(input("Please enter the Word ID you want to add to your wordlist: "))
-    
-    try:
-        cursor = conn.cursor()
-        cursor.execute('INSERT INTO Users_Wordlist (user_id, word_id) VALUES (?, ?)', (current_user_id, word_id))
-        conn.commit()
-        print("Word successfully added to your wordlist!")
-    except sqlite3.IntegrityError as e:
-        print(f"An error occurred: {e}")
+    cursor = conn.cursor()
+    cursor.execute('''SELECT Words.word_id, Words.Japanese, Words.Romanji, Words.Translation, Words.Difficulty, Words.Genre 
+                      FROM Words
+                      JOIN Users_Wordlist ON Words.word_id = Users_Wordlist.word_id
+                      WHERE Users_Wordlist.user_id = ?''', (current_user_id,))
+    words = cursor.fetchall()
+    word_ids = [] 
+    if words:
+        print("Your wordlist:")
+        for word in words:
+            word_id, japanese_word, romanji, translation, difficulty, genre = word
+            word_ids.append(word_id)
+            print(f"\nWord ID: {word_id}")
+            print(f"Japanese Word: {japanese_word}")
+            print(f"Romanji: {romanji}")
+            print(f"Translation: {translation}")
+            print(f"Difficulty: {difficulty}")
+            print(f"Genre: {genre}\n")
+    else:
+        print("Your wordlist is empty.")
+    remove_or_add = string_input_validation("Would you like to remove or add words to your Wordlist? |Remove/Add|", "REMOVE", "ADD", "Please type either remove or add")
+    if remove_or_add == "ADD":
+        word_id = number_input_validation("Please enter the Word ID you want to add to your wordlist: ", 1, 650)
+        cursor.execute('SELECT * FROM Words WHERE word_id = ?', (word_id,))
+        if cursor.fetchone():
+            try:
+                cursor.execute('INSERT INTO Users_Wordlist (userID, wordID) VALUES (?, ?)', (current_user_id, word_id))
+                conn.commit()
+                print("Word successfully added to your wordlist!")
+            except sqlite3.IntegrityError as e:
+                print(f"An error occurred: {e}")
+        else:
+            print("Invalid Word ID. The word does not exist.")
+    elif remove_or_add == "REMOVE":
+        word_id = number_input_validation("Please enter the Word ID you want to remove from your wordlist: ", 1, 650)
+        if word_id in word_ids:
+            try:
+                cursor.execute('DELETE FROM Users_Wordlist WHERE userID = ? AND wordID = ?', (current_user_id, word_id))
+                conn.commit()
+                print("Word successfully removed from your wordlist!")
+            except sqlite3.OperationalError as e:
+                print(f"An error occurred: {e}")
+        else:
+            print("Invalid Word ID. Please enter a Word ID from your wordlist.")
+    repeat = string_input_validation("Would you like to Add/Remove any more words |Yes/No|", "YES", "NO","Invalid response, Please type either Yes or No")
+    if repeat == "YES":
+        user_add
+    elif repeat == "NO":
+        menu(conn)
 
-    
-    
+def practice_wordlist(conn):
+    global current_user_id
+    cursor = conn.cursor()
+    cursor.execute('''SELECT Words.word_id, Words.Japanese, Words.Romanji, Words.Translation, Words.Difficulty, Words.Genre 
+                      FROM Words
+                      JOIN Users_Wordlist ON Words.wordID = Users_Wordlist.wordID
+                      WHERE Users_Wordlist.userID = ?''', (current_user_id,))
+    words = cursor.fetchall()
+    if words:
+        for word in words:
+            word_id, japanese_word, romanji, translation = word
+            print(f"\nWord ID: {word_id}")
+            print(f"Japanese Word: {japanese_word}")
+            print(f"Romanji: {romanji}")
+            ans = input("Please type the translation: ")
+            if ans.strip().lower() == translation.lower():
+                print("Correct!")
+            else:
+                print(f"Incorrect! The correct translation is: {translation}")
+            time.sleep(1)
+        print("Practice session complete!")
+    else:
+        print("Your wordlist is empty.")
+    menu(conn)
+
 def new_word(conn):
     print("Choose a difficulty:")
     for i, diff in enumerate(difficulty_list, start =1):
@@ -111,21 +180,26 @@ def learn_sets(conn):
     chosen_genre = genre_list[gen_choice - 1]
     cursor = conn.cursor()
     try:
-        cursor.execute('SELECT * FROM Words where Genre =?',(chosen_genre,))
+        cursor.execute('SELECT * FROM Words WHERE Genre = ?', (chosen_genre,))
         words = cursor.fetchall()
-        for word in words:
-            print(f"\nWord ID:",word[0])
-            print(f"Japanese Word:",word[1])
-            print(f"Romanji:",word[2])
-            print(f"Genre:",word[5])
-            ans = 0
-            ans = number_input_validation("Please type 1 when you want/believe you have the anwser",1,1)
-            if ans == 1:
-                print(f"Translation:",word[3])
+        if words:
+            print("Starting practice session...")
+            for word in words:
+                word_id, japanese_word, romanji, translation, difficulty, genre = word
+                print(f"\nWord ID: {word_id}")
+                print(f"Japanese Word: {japanese_word}")
+                print(f"Romanji: {romanji}")
+                ans = input("Please type the translation: ")
+                if ans.strip().lower() == translation.lower():
+                    print("Correct!")
+                else:
+                    print(f"Incorrect! The correct translation is: {translation}")
                 time.sleep(1)
+            print("Practice session complete!")
+        else:
+            print("No words found for the selected genre.")
     except sqlite3.OperationalError as e:
         print(f"An error occurred: {e}")
-    print("Set Complete, returning to menu")
     menu(conn)
 
 def learn(conn):
@@ -188,4 +262,6 @@ if __name__ == "__main__":
         cursor.execute('INSERT INTO User_info (Username, Users_Password, User_Name) VALUES (?, ?, ?)', (user_username, user_password, user_name))
         conn.commit()
         print("Account created successfully!")
+        cursor.execute('SELECT userID FROM User_info WHERE Username = ?', (user_username,))
+        current_user_id = cursor.fetchone()[0]
         menu(conn)

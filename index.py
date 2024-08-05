@@ -31,11 +31,21 @@ def string_input_validation(msg, option1, option2, invalid_select_option1_or_2):
             users_choice = users_choice.upper() 
             if users_choice == option1 or users_choice == option2:  
                 return users_choice
-            elif users_choice == "0":
-                menu(conn)
             else:
                 print(invalid_select_option1_or_2)
         except:
+            print(invalid_select_option1_or_2)
+
+def string_input_validation_withmennu(msg, option1, option2, invalid_select_option1_or_2):
+    print(msg)
+    while True:
+        users_choice = input(":")
+        if users_choice == "0":
+            menu(conn)
+        users_choice = users_choice.upper() 
+        if users_choice == option1 or users_choice == option2:  
+            return users_choice
+        else:
             print(invalid_select_option1_or_2)
 
 def menu(conn):
@@ -44,10 +54,8 @@ def menu(conn):
     print("Option 1: View a Random Japanese Word and Its Translation")
     print("Option 2: Practice your Wordlist")
     print("Option 3: Find New words to learn and Practice with sets")
-    print("Option 4: Add words to your wordlist")
-    print("Option 5: Modify your Wordlist")
-    print("Option 6: Exit")
-    
+    print("Option 4: Modify your Wordlist")
+    print("Option 5: Exit")
     user_choice = number_input_validation("Please choose an option (1-5):", 1, 5)
     if user_choice == 1:
         view_random_word(conn)
@@ -58,8 +66,6 @@ def menu(conn):
     elif user_choice == 4:
         user_add(conn)
     elif user_choice == 5:
-        user_add(conn)
-    elif user_choice == 6:
         print("Please visit us again")
         conn.close()
         exit()
@@ -67,29 +73,29 @@ def menu(conn):
 def user_add(conn):
     global current_user_id
     cursor = conn.cursor()
-    cursor.execute('''SELECT Words.word_id, Words.Japanese, Words.Romanji, Words.Translation, Words.Difficulty, Words.Genre 
+    cursor.execute('''SELECT Words.wordID, Words.word, Words.Romanji, Words.Translation, Words.Difficulty, Words.Genre 
                       FROM Words
-                      JOIN Users_Wordlist ON Words.word_id = Users_Wordlist.word_id
-                      WHERE Users_Wordlist.user_id = ?''', (current_user_id,))
+                      JOIN Users_Wordlist ON Words.wordID = Users_Wordlist.wordID
+                      WHERE Users_Wordlist.userID= ?''', (current_user_id,))
     words = cursor.fetchall()
     word_ids = [] 
     if words:
         print("Your wordlist:")
         for word in words:
-            word_id, japanese_word, romanji, translation, difficulty, genre = word
-            word_ids.append(word_id)
-            print(f"\nWord ID: {word_id}")
-            print(f"Japanese Word: {japanese_word}")
+            wordID, word, romanji, translation, difficulty, genre = word
+            word_ids.append(wordID)
+            print(f"\nWord ID: {wordID}")
+            print(f"Japanese Word: {word}")
             print(f"Romanji: {romanji}")
             print(f"Translation: {translation}")
             print(f"Difficulty: {difficulty}")
             print(f"Genre: {genre}\n")
     else:
         print("Your wordlist is empty.")
-    remove_or_add = string_input_validation("Would you like to remove or add words to your Wordlist? |Remove/Add|", "REMOVE", "ADD", "Please type either remove or add")
+    remove_or_add = string_input_validation_withmennu("Would you like to remove or add words to your Wordlist? |Remove/Add|", "REMOVE", "ADD", "Please type either remove or add")
     if remove_or_add == "ADD":
-        word_id = number_input_validation("Please enter the Word ID you want to add to your wordlist: ", 1, 650)
-        cursor.execute('SELECT * FROM Words WHERE word_id = ?', (word_id,))
+        word_id = number_input_validation("Please enter the Word ID you want to add to your wordlist that you have seen exploring this app: ", 1, 650)
+        cursor.execute('SELECT * FROM Words WHERE wordID= ?', (word_id,))
         if cursor.fetchone():
             try:
                 cursor.execute('INSERT INTO Users_Wordlist (userID, wordID) VALUES (?, ?)', (current_user_id, word_id))
@@ -110,25 +116,25 @@ def user_add(conn):
                 print(f"An error occurred: {e}")
         else:
             print("Invalid Word ID. Please enter a Word ID from your wordlist.")
-    repeat = string_input_validation("Would you like to Add/Remove any more words |Yes/No|", "YES", "NO","Invalid response, Please type either Yes or No")
+    repeat = string_input_validation_withmennu("Would you like to Add/Remove any more words |Yes/No|", "YES", "NO","Invalid response, Please type either Yes or No")
     if repeat == "YES":
-        user_add
+        user_add(conn)
     elif repeat == "NO":
         menu(conn)
 
 def practice_wordlist(conn):
     global current_user_id
     cursor = conn.cursor()
-    cursor.execute('''SELECT Words.word_id, Words.Japanese, Words.Romanji, Words.Translation, Words.Difficulty, Words.Genre 
+    cursor.execute('''SELECT Words.wordID, Words.word, Words.Romanji, Words.Translation, Words.Difficulty, Words.Genre 
                       FROM Words
                       JOIN Users_Wordlist ON Words.wordID = Users_Wordlist.wordID
                       WHERE Users_Wordlist.userID = ?''', (current_user_id,))
     words = cursor.fetchall()
     if words:
         for word in words:
-            word_id, japanese_word, romanji, translation = word
-            print(f"\nWord ID: {word_id}")
-            print(f"Japanese Word: {japanese_word}")
+            wordid, word, romanji, translation, difficulty, genre = word
+            print(f"\nWord ID: {wordid}")
+            print(f"Japanese Word: {word}")
             print(f"Romanji: {romanji}")
             ans = input("Please type the translation: ")
             if ans.strip().lower() == translation.lower():
@@ -152,7 +158,6 @@ def new_word(conn):
         print(f"{i}. {gen}")
     gen_choice = number_input_validation(f"Please choose a genre (1-{len(genre_list)}):", 1, len(genre_list))
     chosen_genre = genre_list[gen_choice - 1]
-    
     cursor = conn.cursor()
     try:
         cursor.execute('SELECT * FROM Words where Genre =? and Difficulty =?',(chosen_genre,chosen_diff))
@@ -163,7 +168,8 @@ def new_word(conn):
             print(f"Romanji:",word[2])
             print(f"Translation:",word[3])
             print(f"Difficulty:",word[3])
-            print(f"Genre:",word[5])
+            print(f"Genre:\n",word[5])
+            time.sleep(0.5)
         else:
             print("Sorry, No sets found with your specific requirments")
     except sqlite3.OperationalError as e:
@@ -183,14 +189,15 @@ def learn_sets(conn):
         cursor.execute('SELECT * FROM Words WHERE Genre = ?', (chosen_genre,))
         words = cursor.fetchall()
         if words:
-            print("Starting practice session...")
             for word in words:
-                word_id, japanese_word, romanji, translation, difficulty, genre = word
-                print(f"\nWord ID: {word_id}")
+                wordid, japanese_word, romanji, translation, difficulty, genre = word
+                print(f"\nWord ID: {wordid}")
                 print(f"Japanese Word: {japanese_word}")
                 print(f"Romanji: {romanji}")
                 ans = input("Please type the translation: ")
-                if ans.strip().lower() == translation.lower():
+                if ans.strip().lower() == "0":
+                    menu(conn)
+                elif ans.strip().lower() == translation.lower():
                     print("Correct!")
                 else:
                     print(f"Incorrect! The correct translation is: {translation}")
@@ -204,12 +211,14 @@ def learn_sets(conn):
 
 def learn(conn):
     print("Welcome to the Learning Area")
-    print("Would you like to test your skills on sets or find new words to view?")
-    user_choice = number_input_validation("Please type 1 to test your skills on sets, and type 2 to view New Words",1,2)
+    print("Would you like to test your skills on sets or find new words to view or even practice your wordlist?")
+    user_choice = number_input_validation("Please type 1 to test your skills on sets, type 2 to view New Words or type 3 to practice your wordlist",1,3)
     if user_choice == 1:
         learn_sets(conn)
     elif user_choice == 2:
         new_word(conn)
+    elif user_choice == 3:
+        practice_wordlist(conn)
 
 def view_random_word(conn):
     cursor = conn.cursor()
@@ -218,9 +227,9 @@ def view_random_word(conn):
         words = cursor.fetchall()
         if words:
             words = random.choice(words)
-            word_id, japanese_word, romanji, translation, difficulty, genre = words
+            word_id, word, romanji, translation, difficulty, genre = words
             print(f"\nWord ID: {word_id}")
-            print(f"Japanese Word: {japanese_word}")
+            print(f"Japanese Word: {word}")
             print(f"Romanji: {romanji}")
             print(f"Translation: {translation}")
             print(f"Difficulty: {difficulty}")

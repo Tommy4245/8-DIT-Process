@@ -1,6 +1,7 @@
 import sqlite3
 import random
 import time
+import bcrypt
 
 difficulty_list = ["Beginner","Intermediate","Advanced"]
 genre_list = ["Phrase","Daily Life","Business","Numbers","Colors","Travel","Basic Words","Verbs","Food and Dining","Education","Health and Body","Weather and Nature","Travel and Transportation","Shopping and Money","Food and Dining","Sports and Recreation","Travel and Places","Technology","Environment","Entertainment"]
@@ -250,7 +251,9 @@ if __name__ == "__main__":
         while True:
             user_username = input("Please enter username: ")
             user_password = input("Please enter password: ")
-            if (user_username, user_password) in credentials:
+            user_password = b"user_password"
+            hashed = bcrypt.hashpw(user_password, bcrypt.gensalt())
+            if (user_username, bcrypt.checkpw(user_password,hashed)) in credentials:
                 print("Sign in successful!")
                 cursor.execute('SELECT UserID FROM User_info WHERE Username = ?', (user_username,))
                 current_user_id = cursor.fetchone()[0]
@@ -259,8 +262,10 @@ if __name__ == "__main__":
             else:
                 print("Invalid username or password. Please try again.")
     elif sign_create == "CREATE":
-        user_name = input("What is your name so I can track your words: ")
+        user_name = input("What is your name: ")
         user_password = input("What would you like your password to be: ")
+        user_password = b"user_password"
+        hashed = bcrypt.hashpw(user_password, bcrypt.gensalt())
         cursor.execute('SELECT Username FROM User_info')
         usernames = [row[0] for row in cursor.fetchall()]
         user_username = ""
@@ -268,9 +273,10 @@ if __name__ == "__main__":
             user_username = input("Please choose a username: ")
             if user_username in usernames:
                 print("Username already taken, please choose another one.")
-        cursor.execute('INSERT INTO User_info (Username, Users_Password, User_Name) VALUES (?, ?, ?)', (user_username, user_password, user_name))
+        cursor.execute('INSERT INTO User_info (Username, Users_Password, User_Name) VALUES (?, ?, ?)', (user_username, hashed, user_name))
         conn.commit()
         print("Account created successfully!")
         cursor.execute('SELECT userID FROM User_info WHERE Username = ?', (user_username,))
         current_user_id = cursor.fetchone()[0]
         menu(conn)
+        

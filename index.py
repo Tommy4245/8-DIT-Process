@@ -246,25 +246,29 @@ if __name__ == "__main__":
     sign_create = string_input_validation("Please sign in or create an account, type sign to sign in or create to create an account: ","CREATE","SIGN","Invalid response please choose either create or sign")
     if sign_create == "SIGN":
         cursor.execute('SELECT Username, Users_Password FROM User_info')
-        credentials = cursor.fetchall()
         user_username = ""
         while True:
             user_username = input("Please enter username: ")
-            user_password = input("Please enter password: ")
-            user_password = b"user_password"
-            hashed = bcrypt.hashpw(user_password, bcrypt.gensalt())
-            if (user_username, bcrypt.checkpw(user_password,hashed)) in credentials:
-                print("Sign in successful!")
-                cursor.execute('SELECT UserID FROM User_info WHERE Username = ?', (user_username,))
-                current_user_id = cursor.fetchone()[0]
-                menu(conn)
-                break
+            user_password = input("Please enter password: ").encode('utf-8')
+            cursor.execute('SELECT Users_Password FROM User_info WHERE Username = ?', (user_username,))
+            result = cursor.fetchone()
+            if result:
+                stored_password_hash = result[0]
+                if isinstance(stored_password_hash, str):
+                    stored_password_hash = stored_password_hash.encode('utf-8')
+                if bcrypt.checkpw(user_password, stored_password_hash):
+                    print("Sign in successful!")
+                    cursor.execute('SELECT UserID FROM User_info WHERE Username = ?', (user_username,))
+                    current_user_id = cursor.fetchone()[0]
+                    menu(conn)
+                    break
+                else:
+                    print("Invalid password. Please try again.")
             else:
-                print("Invalid username or password. Please try again.")
+                print("Invalid username. Please try again.")
     elif sign_create == "CREATE":
         user_name = input("What is your name: ")
-        user_password = input("What would you like your password to be: ")
-        user_password = b"user_password"
+        user_password = input("What would you like your password to be: ").encode('utf-8')
         hashed = bcrypt.hashpw(user_password, bcrypt.gensalt())
         cursor.execute('SELECT Username FROM User_info')
         usernames = [row[0] for row in cursor.fetchall()]
